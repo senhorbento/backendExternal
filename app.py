@@ -3,9 +3,29 @@ import requests
 from flasgger import Swagger
 
 app = Flask(__name__)
+
+app.config['SWAGGER'] = {
+    "info": {
+        "title": "Api External",
+        "description": "API para consumir apis externas",
+        "contact": {
+            "responsibleDeveloper": "Bento",
+            "email": "sbento.ti@gmail.com",
+            "url": "https://senhorbento.com.br/",
+        },
+        "version": "1.0"
+    },
+    "operationId": "getmyData",
+    "consumes": [
+        "application/json"
+    ],
+    "produces": [
+        "application/json"
+    ]
+}
+
 swagger = Swagger(app)
 
-# Endpoint para obter posts
 @app.route('/posts', methods=['GET'])
 def get_posts():
     """
@@ -36,7 +56,7 @@ def get_posts():
     posts = response.json()
     return jsonify(posts), 200
 
-# Endpoint para obter um post específico por ID
+
 @app.route('/posts/<int:post_id>', methods=['GET'])
 def get_post(post_id):
     """
@@ -67,9 +87,73 @@ def get_post(post_id):
                         type: string
                         example: "Conteúdo do post"
     """
-    response = requests.get(f'https://jsonplaceholder.typicode.com/posts/{post_id}')
+    response = requests.get(
+        f'https://jsonplaceholder.typicode.com/posts/{post_id}')
     post = response.json()
     return jsonify(post), 200
 
+
+@app.route('/cep/<string:cep>', methods=['GET'])
+def get_cep(cep):
+    """
+    Obter informações sobre um CEP
+    ---
+    parameters:
+        - name: cep
+          in: path
+          type: string
+          required: true
+          description: CEP a ser consultado
+    responses:
+        200:
+            description: Informações sobre o CEP
+            schema:
+                type: object
+                properties:
+                    cep:
+                        type: string
+                        example: "01001-000"
+                    logradouro:
+                        type: string
+                        example: "Praça da Sé"
+                    complemento:
+                        type: string
+                        example: "lado ímpar"
+                    bairro:
+                        type: string
+                        example: "Sé"
+                    localidade:
+                        type: string
+                        example: "São Paulo"
+                    uf:
+                        type: string
+                        example: "SP"
+                    ibge:
+                        type: string
+                        example: "3550308"
+                    gia:
+                        type: string
+                        example: "1004"
+                    ddd:
+                        type: string
+                        example: "11"
+                    siafi:
+                        type: string
+                        example: "7107"
+        400:
+            description: CEP inválido
+        404:
+            description: CEP não encontrado
+    """
+    response = requests.get(f'https://viacep.com.br/ws/{cep}/json/')
+    if response.status_code == 200:
+        data = response.json()
+        if 'erro' in data:
+            return jsonify({'error': 'CEP não encontrado'}), 404
+        return jsonify(data), 200
+    return jsonify({'error': 'CEP inválido'}), 400
+
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = 5001
+    app.run(debug=True, host='0.0.0.0', port=port)
